@@ -1,0 +1,263 @@
+---
+title: "White_Wine_Exploration"
+author: "Chad-Michael Renner"
+date: "4/9/2017"
+output: html_document
+---
+========================================================
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+library(ggplot2)
+library(GGally)
+library(scales)
+library(memisc)
+library(gridExtra)
+library(RColorBrewer)
+library(psych)
+```
+
+```{r echo=FALSE, Load_the_Data}
+ww <- read.csv('wineQualityWhites.csv')
+```
+
+The wonderful world of white wines!  The sugary drink that almost anybody could love.  In this summary, I will be comparing some crucial factors of white wines to figure out what makes them so good.  So get ready, and lets dive in  
+
+# Univariate Plots Section
+
+```{r echo=FALSE, Dim}
+dim(ww)
+```
+
+```{r echo=FALSE, Head}
+head(ww,  10)
+```
+
+```{r echo=FALSE, Summary}
+summary(ww)
+```
+Above, you will see the dimensions, first 10 lines, and a summary of each column.  Looking at the above, you will notice that column X goes from 1 to 4898, which is how many observations we have.  Because of this, I made the X column a factor, to label each individual wine.
+
+With this data layed out, I am able to see the data and sections but unable to really visualize any information.  Now I am going to move on to some univariate plots to display the data so I can visualize and analyze further.
+
+```{r echo=FALSE, Factor}
+ww$quality <- factor(ww$quality)
+```
+
+```{r echo=FALSE, Alcohol_Hist}
+qplot(x = alcohol, data = ww) +
+  scale_x_continuous()
+```
+
+```{r echo=FALSE, Alcohol_Log10}
+ggplot(aes(x = alcohol), data = ww) +
+  geom_histogram()
+  scale_x_log10()
+```
+
+```{r echo=FALSE, Residual_Sugar}
+qplot(x = residual.sugar, data = ww)
+```
+Summary of Residual Sugar
+```{r echo=FALSE}
+summary(ww$residual.sugar)
+```
+Summary of Residual Sugar Log10
+```{r echo=FALSE}
+summary(log10(ww$residual.sugar)) # comparing friend counts on orders of 10 (like ph scale)
+# add 1 so there is no negative infinity for the 0 variable
+```
+Summary of Residual Sugar squared
+```{r echo=FALSE}
+summary(sqrt(ww$residual.sugar))
+```
+
+### Transforming Data
+```{r echo=FALSE}
+p1 <- qplot(x = residual.sugar, data = ww) +
+        scale_x_continuous(breaks = seq(0, 60, 2))
+p2 <- qplot(x = log10(residual.sugar), data = ww)
+p3 <- qplot(x = sqrt(residual.sugar), data = ww)
+
+grid.arrange(p1, p2, p3, ncol = 1)
+```
+
+```{r echo=FALSE, adjusting_bin}
+pH1 <- qplot(x = pH, data = ww)
+pH2 <- qplot(x = pH, data = ww, binwidth = 1/75)
+pH3 <- qplot(x = pH, data = ww, binwidth = 1/100)
+
+grid.arrange(pH1, pH2, pH3, ncol = 1)
+```
+
+# Univariate Analysis
+
+### The structure of the dataset:
+There are 4,898 different white wines in the data, with 11 features, all affecting the quality of the wine.  In this study, I will look at the factors that are of most interest to me to find out if this will have any effect on the quality of the wine.  The factor variable has been assigned to the quality, based on a level from 3 to 9, with 9 being the highest quality.  
+Some things that have been observed already is that the residual sugar of the wine quite lower than expected for white wines, with almost 2/3 of the wines in the list between 2 and 4 residual sugar.  Also, the pH seems to a normal distribution. 
+
+### What is/are the main feature(s) of interest?
+The main feature of this dataset is the quality of the wine.  All of the data revolves around the quality, with certain areas of interest such as the pH, residual sugar, and the acidity.
+
+
+# Bivariate Plots Section
+
+```{r echo=FALSE, Bivariate_Plots}
+ggplot(data = ww, aes(x = quality, y = pH)) +
+  geom_point()
+```
+
+```{r echo=FALSE}
+#set the seed for reproducible results
+set.seed(4000)
+ww_subset <- ww[, c(5:13)]
+ggpairs(ww_subset[sample.int(nrow(ww_subset),2000), ])
+```
+
+```{r echo=FALSE}
+ggplot(data = ww, aes(x = residual.sugar, y = density)) +
+  geom_point()
+```
+
+```{r echo=FALSE}
+ggplot(data = ww, aes(x = residual.sugar, y = density)) +
+  geom_point() +
+  xlim(0, 30)
+```
+
+```{r echo=FALSE}
+ggplot(data = ww, aes(x = free.sulfur.dioxide, y = total.sulfur.dioxide)) +
+  geom_line()
+```
+
+```{r echo=FALSE}
+ggplot(data = ww, aes(x = free.sulfur.dioxide, y = total.sulfur.dioxide)) +
+  geom_line()+
+  xlim(0,100)
+```
+
+```{r echo=FALSE}
+ggplot(data = ww, aes(x = density, y = alcohol)) +
+  geom_jitter(alpha = 1/5) +
+  scale_x_continuous()
+```
+
+```{r echo=FALSE}
+ggplot(data = ww, aes(x = quality, y = alcohol)) +
+  geom_boxplot()
+```
+
+```{r echo=FALSE}
+ggplot( aes( x= alcohol, y = volatile.acidity), data = ww) + 
+  geom_jitter(alpha = 0.5, size = 0.75) + 
+  geom_smooth()
+
+ww$alcohol.level.5 <- cut(ww$alcohol, 5)
+summary(ww$alcohol.level.5)
+describeBy(ww$volatile.acidity,ww$alcohol.level.5)
+```
+
+# Bivariate Analysis
+
+### Relationships:
+There are a lot of interesting relationships in the data, such as alcohol vs quality.  It is very interesting that the quality of the wine actually increases as the amount of alcohol increases.  There are also interesting relationships between the residual sugar vs. density and the relationship of valatile acidity compared to alcohol.
+
+Lets dig deeper into these relationships and explore some multvariate analysis to see where this takes us in the wine exploration
+
+# Multivariate Plots Section
+
+```{r echo=FALSE}
+ggplot(ww, aes(quality, alcohol, fill = free.sulfur.dioxide)) +
+    geom_jitter(alpha = 0.3) + 
+    geom_boxplot() 
+```
+
+```{r echo=FALSE}
+ww$alcohol.level.3 <- cut(ww$alcohol, 3)
+summary(ww$alcohol.level.3)
+ggplot( aes( x= quality, y = volatile.acidity), data = ww) + 
+  geom_boxplot() + 
+  coord_cartesian(ylim = c(0, 0.9)) +
+  coord_flip() + 
+  facet_wrap(~alcohol.level.3)
+```
+
+When I break down quality by alcohol level and volatile acidity, for alcohol group between 7.99-10.1%, the negative relationship between volatile acidity and quality becomes the strongest. For example, among 7.99-10.1% alcohol categories, the median value of volatile acidity decreases from 0.34 g/l for less desirable wines (quality = 4) to 0.19 g/l for highly rated ones (quality = 8); the former group also has a higher variation of volatile acidity (sd = 0.31) than the latter one (sd = 0.03).
+
+------
+
+# Final Plots and Summary
+
+### Plot One
+```{r echo=FALSE, Plot_One}
+pl1 <- ggplot(ww, aes( alcohol)) +
+      geom_density(alpha = 0.5, fill = 'red') +  
+      xlab('Alcohol Level (% by Volume)') 
+
+pl2 <- ggplot(ww, aes( quality)) + 
+      geom_bar(alpha = 0.8, fill = "#56B4E9") +  
+      xlab('Wine Quality') 
+
+pl3 <- ggplot(ww, aes( x=quality, y=alcohol, fill = quality)) + 
+  scale_fill_brewer() + 
+  geom_boxplot() +
+  geom_smooth(method = "lm", se=FALSE, color="red", aes(group=1)) + 
+  theme(legend.position = 'top') + 
+  ggtitle('Wine Quality vs. Alcohol Level') + 
+  xlab('Wine Quality') + 
+  ylab('Alcohol Level (% by Volume)') 
+
+grid.arrange(pl3, arrangeGrob(pl1, pl2, ncol = 1), ncol=2, widths=c(2,1))
+
+describeBy(ww$alcohol,ww$quality)
+```
+
+### Description One
+Comparing wine quality vs. alcohol level is probaly what is the highest priority by wine makers.  There are very few wines with a high quality, the majority is around quality level 3.  But with a higher quality also comes a higher mean alcohol level and also a lower density.  Alcohol level has a relatively small range from 8% to 14.2% and a median value at 10.4%. The majority of our wine ratings fall between 5-7. Except for rating 4 category probably due to relative small sample size, a better-rated wine has a higher alcohol level (the left chart).
+
+### Plot Two
+```{r echo=FALSE, Plot_Two}
+
+plot1 <- ggplot(ww, aes( x = alcohol.level.5, y = free.sulfur.dioxide)) + 
+      geom_point(alpha = 0.05) +
+      coord_cartesian( ylim = c(0,75)) + 
+      geom_boxplot(alpha = 0.3, color = 'orange') +
+      ylab('Free Sulfur Dioxide(mg/l)') + 
+      xlab('Alcohol Groups (% by volume)')
+
+plot2 <- ggplot(ww, aes( x = alcohol.level.5, y = volatile.acidity)) + 
+      geom_point(alpha = 0.05) +
+      coord_cartesian( ylim = c(0,0.6)) + 
+      geom_boxplot(alpha = 0.3, color = 'purple') + 
+      ylab('Volatile Acidity(g/l)') + 
+      xlab('Alcohol Groups (% by volume)')
+
+grid.arrange(plot1, plot2, ncol = 1)
+
+describeBy(ww$free.sulfur.dioxide,ww$alcohol.level.5)
+describeBy(ww$volatile.acidity,ww$alcohol.level.5)
+```
+
+### Description Two
+The combined two charts below plot alcohol against free sulfur dioxide and volatile acidity. The higher the alcohol level is, the less the free sulfur dioxide will be. For example, the median free sulfur dioxide amount among 13-14.2% alcohol group is only 28 mg/l, much less than 42 mg/l among 7.99-9.24% alcohol group. The relatinship between acidity and alcohol becomes more clear among higher alcohol groups. For instance, the median volatile acidity amount among 13-14.2% alcohol group is 0.35 g/l as compared to 0.24 g/l among 10.5-11.7% alcohol group.
+
+### Plot Three
+```{r echo=FALSE, Plot_Three}
+ggplot(data = ww, aes(x = alcohol, y = log10(residual.sugar)))+
+  geom_histogram(aes(color = quality), stat = "summary", fun.y = median)+
+  geom_histogram(aes(y=..count../sum(..count..))) +
+  ggtitle('Residual Sugar vs. Alcohol Level') 
+
+
+```
+
+### Description Three
+This chart is very interesting and descriptive in many ways.  It shows the averages of the log10 residual sugar, and sort of makes a bimodal histogram.  It also vactors in the quality of the wine as the color and builds the gistogram on that.  It seems that the higher residual sugar means a lower quality is most circumstances.
+
+
+# Reflection
+
+This white wine dataset is the most tidy one I've ever used. However, I was frustrated in the beginning because except alcohol, almost all other input variables don't have a strong relationship with wine quality. Reading correlation matrix is not enough. When conditioning on other relevant variables, the relationships between the physicochemical properties and quality became clear. Also, all input variables are continous variables which limited the type of graphs I could make. One solution I made was to recode to categorical variables.
+
+The other problem I had is my knowledge about the physicochemicals and how they interacted were limited before starting this project. I had to resort to additional readings to brush up my wine knowledge.
+
+This dataset is pretty limited with 13 input variables (technically 12 can be used for analysis because one of them is ID variable), it will be great if other variables such as grape type and wine age can be included for further investigation.
