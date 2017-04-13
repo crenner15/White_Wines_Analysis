@@ -5,6 +5,9 @@ date: "4/9/2017"
 output: html_document
 ---
 ========================================================
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
+```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
 library(ggplot2)
@@ -39,9 +42,87 @@ Above, you will see the dimensions, first 10 lines, and a summary of each column
 
 With this data layed out, I am able to see the data and sections but unable to really visualize any information.  Now I am going to move on to some univariate plots to display the data so I can visualize and analyze further.
 
+
+## Quality
+In our dataset, the "quality" variable ranges between 3 and 9 with a median of 6, so there is neither very bad nor very excellent wine but mostly averge wines. Also, there are only 25 wines rated either 3 or 9.
+
 ```{r echo=FALSE, Factor}
 ww$quality <- factor(ww$quality)
+qplot(x = quality, data = ww) 
 ```
+
+## Fixed Acidity
+The basic histogram shows that fixed acidity has really few values less than 3 and a long tail after 10. So I limit the x axis range. Changing binwidth also shows more clearly that the majority of the fixed acidities fall between 5.5 and 8.5.
+
+```{r echo=FALSE, Fixed_Acidity}
+ggplot( aes( x= fixed.acidity), data = ww) + 
+  geom_histogram(binwidth = 0.05) + 
+  scale_x_continuous(limit = c(3,10), breaks = seq(3, 10, by = 0.5) )
+```
+
+## Volatile Acidity
+After adjusting bin width, I can see that most wines have an acetic acid between 0.15-0.4g/l, with a median value at 0.28g/l.
+```{r echo=FALSE, Volatile_Acidity}
+qplot(x = volatile.acidity, data = ww, binwidth = .005) +
+  scale_x_continuous(limit = c(0.1,0.7))
+```
+
+## Citric Acid
+The majority of citric acidity level fall between 0.15-0.5g/l with a spike at the level of 0.49g/l. In contrast to volatile acidity, citric acidity add freshness to the wine.
+
+```{r echo=FALSE, Citric_acid}
+ggplot( aes( x= citric.acid), data = ww) + 
+  geom_histogram(binwidth = 0.005) + 
+  scale_x_continuous( limit = c(0, 0.8), breaks = seq(0, 0.8, by = 0.05) ) 
+```
+
+## Chlorides
+Most wines has an amount of sodium chloride between 0.025-0.06g/l, with a median of 0.043g/l. The highest level in this dataset is 0.346g/l.
+
+```{r echo=FALSE, Chlorides}
+ggplot( aes( x= chlorides), data = ww) + 
+  geom_histogram(binwidth = 0.005) + 
+  scale_x_continuous( limit = c(0, 0.2), breaks = seq(0, 0.2, by = 0.025) ) 
+```
+
+## Free Sulfur Dioxide
+The median value of free sulfur dioxide is 34 mg/l and it has a wide range from 2 to 289 mg/l with the majority of the value falling between 10-55 mg/l. Since free sulfur dioxide becomes noticeable at 50 mg/l, I assume it will affect the taste.
+
+```{r echo=FALSE, free_sulfur_dioxide}
+ggplot( aes( x= free.sulfur.dioxide), data = ww) + 
+  geom_histogram(binwidth = 1)+
+  scale_x_continuous( limit = c(0, 125), breaks = seq(0, 125, by = 25) ) 
+```
+
+## Total Sulfur Dioxide
+Similar to free sulfur dioxide, total sulfur dioxide also has a wide range from 9 to 440 mg/l with a median value at 134 mg/l.
+
+```{r echo=FALSE, total_sulfur_dioxide}
+ggplot( aes( x= total.sulfur.dioxide), data = ww) + 
+  geom_histogram(binwidth = 1) +
+  scale_x_continuous( limit = c(0, 300), breaks = seq(0, 300, by = 50) ) 
+```
+
+##Density
+Density is a very small range between 0.985 and 1.005.
+
+```{r echo=FALSE, density}
+ggplot( aes( x= density), data = ww) + 
+  geom_histogram(binwidth = .0001) +
+  scale_x_continuous( limit = c(0.985,1.005), breaks = seq(0.985,1.005, by = .005) )
+```
+
+##pH
+the pH is between 2.72 and 3.82, which means that wine is on the acidic side.
+
+```{r echo=FALSE, pH}
+ggplot( aes( x= pH), data = ww) + 
+  geom_histogram(binwidth = .005) 
+  scale_x_continuous()
+```
+
+## Alcohol
+An appropriate level of alcohol enhances the flavor but a high level of alcohol will cause a negative burning sensation. But our white wine dataset doesn't appear to have very high alcohol level. The median is 10.4% and the majority of values fall between 9% to 13%.
 
 ```{r echo=FALSE, Alcohol_Hist}
 qplot(x = alcohol, data = ww) +
@@ -50,13 +131,18 @@ qplot(x = alcohol, data = ww) +
 
 ```{r echo=FALSE, Alcohol_Log10}
 ggplot(aes(x = alcohol), data = ww) +
-  geom_histogram()
+  geom_histogram() +
   scale_x_log10()
 ```
 
 ```{r echo=FALSE, Residual_Sugar}
-qplot(x = residual.sugar, data = ww)
+qplot(x = residual.sugar, data = ww) +
+  scale_x_continuous(limits = c(0,22))
 ```
+
+## Residual Sugar
+Residual sugar has a wide range between 0.6-65.8g/l while the median is only 5.2g/l. This is because wine producers try to cater to varying consumers' preference of sweetness. Some people like me favor sweet wines, while others might prefer bone dry.
+
 Summary of Residual Sugar
 ```{r echo=FALSE}
 summary(ww$residual.sugar)
@@ -72,6 +158,7 @@ summary(sqrt(ww$residual.sugar))
 ```
 
 ### Transforming Data
+
 ```{r echo=FALSE}
 p1 <- qplot(x = residual.sugar, data = ww) +
         scale_x_continuous(breaks = seq(0, 60, 2))
@@ -103,13 +190,14 @@ The main feature of this dataset is the quality of the wine.  All of the data re
 
 ```{r echo=FALSE, Bivariate_Plots}
 ggplot(data = ww, aes(x = quality, y = pH)) +
-  geom_point()
+  geom_jitter()
 ```
 
 ```{r echo=FALSE}
 #set the seed for reproducible results
 set.seed(4000)
-ww_subset <- ww[, c(5:13)]
+#ww_subset <- ww[, c(5:13)]
+ww_subset <- subset(ww, select = -c(quality, X))
 ggpairs(ww_subset[sample.int(nrow(ww_subset),2000), ])
 ```
 
@@ -121,24 +209,27 @@ ggplot(data = ww, aes(x = residual.sugar, y = density)) +
 ```{r echo=FALSE}
 ggplot(data = ww, aes(x = residual.sugar, y = density)) +
   geom_point() +
-  xlim(0, 30)
+  xlim(0, 30)+
+  geom_smooth(method = 'lm')
 ```
 
 ```{r echo=FALSE}
 ggplot(data = ww, aes(x = free.sulfur.dioxide, y = total.sulfur.dioxide)) +
-  geom_line()
+  geom_point()
 ```
 
 ```{r echo=FALSE}
 ggplot(data = ww, aes(x = free.sulfur.dioxide, y = total.sulfur.dioxide)) +
-  geom_line()+
-  xlim(0,100)
+  geom_point()+
+  xlim(0,100)+
+  geom_smooth(method = 'lm')
 ```
 
 ```{r echo=FALSE}
 ggplot(data = ww, aes(x = density, y = alcohol)) +
   geom_jitter(alpha = 1/5) +
-  scale_x_continuous()
+  scale_x_continuous()+
+  geom_smooth(method = 'lm')
 ```
 
 ```{r echo=FALSE}
@@ -166,7 +257,7 @@ Lets dig deeper into these relationships and explore some multvariate analysis t
 # Multivariate Plots Section
 
 ```{r echo=FALSE}
-ggplot(ww, aes(quality, alcohol, fill = free.sulfur.dioxide)) +
+ggplot(ww, aes(quality, alcohol, color = free.sulfur.dioxide)) +
     geom_jitter(alpha = 0.3) + 
     geom_boxplot() 
 ```
@@ -222,7 +313,8 @@ plot1 <- ggplot(ww, aes( x = alcohol.level.5, y = free.sulfur.dioxide)) +
       coord_cartesian( ylim = c(0,75)) + 
       geom_boxplot(alpha = 0.3, color = 'orange') +
       ylab('Free Sulfur Dioxide(mg/l)') + 
-      xlab('Alcohol Groups (% by volume)')
+      xlab('Alcohol Groups (% by volume)') +
+      ggtitle("Sulfur Dioxide & Acidity vs. Alcohol Groups")
 
 plot2 <- ggplot(ww, aes( x = alcohol.level.5, y = volatile.acidity)) + 
       geom_point(alpha = 0.05) +
@@ -243,11 +335,9 @@ The combined two charts below plot alcohol against free sulfur dioxide and volat
 ### Plot Three
 ```{r echo=FALSE, Plot_Three}
 ggplot(data = ww, aes(x = alcohol, y = log10(residual.sugar)))+
-  geom_histogram(aes(color = quality), stat = "summary", fun.y = median)+
-  geom_histogram(aes(y=..count../sum(..count..))) +
+  geom_point(aes(color = quality), stat = "summary", fun.y = median) +
+  geom_line(stat = 'summary', fun.y = mean, linetype = 3) +
   ggtitle('Residual Sugar vs. Alcohol Level') 
-
-
 ```
 
 ### Description Three
