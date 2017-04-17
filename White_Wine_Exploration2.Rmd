@@ -117,7 +117,7 @@ the pH is between 2.72 and 3.82, which means that wine is on the acidic side.
 
 ```{r echo=FALSE, pH}
 ggplot( aes( x= pH), data = ww) + 
-  geom_histogram(binwidth = .005) 
+  geom_histogram(bins = nclass.FD(ww$pH)) 
   scale_x_continuous()
 ```
 
@@ -201,10 +201,14 @@ ww_subset <- subset(ww, select = -c(quality, X))
 ggpairs(ww_subset[sample.int(nrow(ww_subset),2000), ])
 ```
 
+With all the data plotted like this, it is easy to make quick assumptions on the data and see what effect each variable has on one another.  Lets take a closer look at a few of these variable!
+
 ```{r echo=FALSE}
 ggplot(data = ww, aes(x = residual.sugar, y = density)) +
   geom_point()
 ```
+
+
 
 ```{r echo=FALSE}
 ggplot(data = ww, aes(x = residual.sugar, y = density)) +
@@ -212,6 +216,8 @@ ggplot(data = ww, aes(x = residual.sugar, y = density)) +
   xlim(0, 30)+
   geom_smooth(method = 'lm')
 ```
+
+This is a great model to show the representation of residual sugar and density.  As you can see, the density increases with the residual sugar, creating a correlatoin between the two.
 
 ```{r echo=FALSE}
 ggplot(data = ww, aes(x = free.sulfur.dioxide, y = total.sulfur.dioxide)) +
@@ -225,6 +231,8 @@ ggplot(data = ww, aes(x = free.sulfur.dioxide, y = total.sulfur.dioxide)) +
   geom_smooth(method = 'lm')
 ```
 
+Free sulfur dioxide compared to total sulfur dioxide has an upward trend.  This is expected, but removing outliers creates a more robust plot.  
+
 ```{r echo=FALSE}
 ggplot(data = ww, aes(x = density, y = alcohol)) +
   geom_jitter(alpha = 1/5) +
@@ -232,10 +240,14 @@ ggplot(data = ww, aes(x = density, y = alcohol)) +
   geom_smooth(method = 'lm')
 ```
 
+As noted previously, the density increase means a higher residual sugar.  Note here that the increase in density also created a decrease in the alcohol percentage.  
+
 ```{r echo=FALSE}
 ggplot(data = ww, aes(x = quality, y = alcohol)) +
   geom_boxplot()
 ```
+
+Alcohol amount vs. quality is a very interesting relationship looking at it as a boxplot.  Interestingly enough, the alcohol percentage increases with quality of wine.  There is a slight decline around quality level 5, but this can be attributed to the median quality being around this level.
 
 ```{r echo=FALSE}
 ggplot( aes( x= alcohol, y = volatile.acidity), data = ww) + 
@@ -257,19 +269,55 @@ Lets dig deeper into these relationships and explore some multvariate analysis t
 # Multivariate Plots Section
 
 ```{r echo=FALSE}
+ggplot(data = ww, aes(x = alcohol, y = residual.sugar, color = factor(quality))) +
+    geom_point() +
+    scale_y_continuous(limits = c(0,22)) +
+    scale_color_brewer(palette = "YlOrRd") +
+    theme_dark()
+```
+
+This chart is very interesting and descriptive in many ways.  This chart factors in the quality of the wine as the color and builds the histogram on that.  It seems that the higher residual sugar means a lower quality is most circumstances.
+
+```{r echo=FALSE}
+ggplot(ww, aes( x = alcohol.level.5, y = free.sulfur.dioxide)) + 
+      geom_point(alpha = 0.05) +
+      coord_cartesian( ylim = c(0,75)) + 
+      geom_boxplot(alpha = 0.3, color = 'blue') +
+      ylab('Free Sulfur Dioxide(mg/l)') + 
+      xlab('Alcohol Groups (% by volume)') +
+      ggtitle("Sulfur Dioxide vs. Alcohol Groups")
+```
+
+```{r echo=FALSE}
+ggplot(ww, aes( x = alcohol.level.5, y = volatile.acidity)) + 
+      geom_point(alpha = 0.05) +
+      coord_cartesian( ylim = c(0,0.6)) + 
+      geom_boxplot(alpha = 0.3, color = 'purple') + 
+      ylab('Volatile Acidity(g/l)') + 
+      xlab('Alcohol Groups (% by volume)')
+```
+
+As you can see by the above two plots, the volatile acidity and Sulfur Dioxide based off of the acohol level has an opposit effect. This shows the the higher the alcohol content, the higher the acidity but lower sulfur dioxide  
+
+```{r echo=FALSE}
 ggplot(ww, aes(quality, alcohol, color = free.sulfur.dioxide)) +
     geom_jitter(alpha = 0.3) + 
     geom_boxplot() 
 ```
 
 ```{r echo=FALSE}
-ww$alcohol.level.3 <- cut(ww$alcohol, 3)
+y <- rnorm(20)
+ns <- tapply(y,y>0,length)
+labs <- paste(c("Low Alcohol", "Mid. Alcohol", "High Alcohol"), paste("n =",ns), sep="\n")
+
+ww$alcohol.level.3 <- cut(ww$alcohol, 3, labels = labs)
 summary(ww$alcohol.level.3)
 ggplot( aes( x= quality, y = volatile.acidity), data = ww) + 
   geom_boxplot() + 
   coord_cartesian(ylim = c(0, 0.9)) +
   coord_flip() + 
-  facet_wrap(~alcohol.level.3)
+  facet_wrap(~alcohol.level.3) +
+  ggtitle('Wine Quality vs. Volatile Acidity for Alcohol Level Low to High')
 ```
 
 When I break down quality by alcohol level and volatile acidity, for alcohol group between 7.99-10.1%, the negative relationship between volatile acidity and quality becomes the strongest. For example, among 7.99-10.1% alcohol categories, the median value of volatile acidity decreases from 0.34 g/l for less desirable wines (quality = 4) to 0.19 g/l for highly rated ones (quality = 8); the former group also has a higher variation of volatile acidity (sd = 0.31) than the latter one (sd = 0.03).
@@ -334,15 +382,17 @@ The combined two charts below plot alcohol against free sulfur dioxide and volat
 
 ### Plot Three
 ```{r echo=FALSE, Plot_Three}
-ggplot(data = ww, aes(x = alcohol, y = log10(residual.sugar)))+
-  geom_point(aes(color = quality), stat = "summary", fun.y = median) +
-  geom_line(stat = 'summary', fun.y = mean, linetype = 3) +
-  ggtitle('Residual Sugar vs. Alcohol Level') 
+ggplot(data = ww, aes(x = alcohol, y = residual.sugar, color = quality))+
+  geom_point() +
+  scale_y_log10() +
+  scale_color_brewer(palette = "YlOrRd") +
+  theme_dark() +
+  xlab('Alcohol Level (% by Volume)') +
+  ggtitle('Residual Sugar vs. Alcohol Level')
 ```
 
 ### Description Three
-This chart is very interesting and descriptive in many ways.  It shows the averages of the log10 residual sugar, and sort of makes a bimodal histogram.  It also vactors in the quality of the wine as the color and builds the gistogram on that.  It seems that the higher residual sugar means a lower quality is most circumstances.
-
+This chart is very interesting and descriptive in many ways.  It shows the averages of the log10 residual sugar, and sort of makes a bimodal histogram.  It also factors in the quality of the wine as the color and builds the histogram on that.  It seems that the higher residual sugar means a lower quality is most circumstances.
 
 # Reflection
 
